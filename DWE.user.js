@@ -10,24 +10,33 @@
 // ==/UserScript==
 
 (function() {
-    'use strict';
     var inform = console.info.bind(console, "[DWE]");
     var warn = console.warn.bind(console, "[DWE]");
     inform("DWE Running");
     var oWS = window.WebSocket;
     inform("Copied window.WebSocket to private variable");
+
+    if (!window.DiscordExtensions) {
+        warn("No window.DiscordExtensions object created, creating...");
+        window.DiscordExtensions = {};
+    }
+    if (!window.DiscordExtensions.DiscordWebSockets) {
+        warn("No window.DiscordExtensions.DiscordWebSockets array created, creating...");
+        window.DiscordExtensions.DiscordWebSockets = [];
+    }
+    var DWEArr = window.DiscordExtensions.DiscordWebSockets;
+
     window.WebSocket = function(url, protocols) {
         var x = new oWS(url, protocols);
-        if (!window.DiscordExtensions) {
-            warn("No window.DiscordExtensions object created, creating...");
-            window.DiscordExtensions = {};
-        }
-        if (!window.DiscordExtensions.DiscordWebSockets) {
-            warn("No window.DiscordExtensions.DiscordWebSockets array created, creating...");
-            window.DiscordExtensions.DiscordWebSockets = [];
-        }
-        window.DiscordExtensions.DiscordWebSockets.push(x);
-        inform("New Discord Websocket found and added to index", window.DiscordExtensions.DiscordWebSockets.length - 1);
+        DWEArr.push(x);
+        inform("New Discord Websocket found and added to index", DWEArr.indexOf(x));
+        x.addEventListener('close', function(e) {
+            var i = DWEArr.indexOf(x);
+            DWEArr.splice( i, 1 );
+            inform("Discord Websocket in index " + i + " closed and removed");
+            x.removeEventListener('close', arguments.callee);
+            x = null;
+        });
         return x;
     };
 })();
